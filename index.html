@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob: data:; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
+<title>Creations upload</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--text:#e9ecf2;--muted:#9aa3b2;--accent:#ff4d6d;--ok:#3ccf91;--warn:#f5b84b;--bad:#ff6b6b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:1.5rem;margin:8px 0 4px}
+h2{font-size:1.05rem;margin:0 0 10px}
+p{margin:6px 0}
+.muted{color:var(--muted);font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.hidden{display:none!important}
+label{display:block;font-size:.9rem;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=password]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#11141a;color:var(--text);font-size:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;width:100%;margin-top:12px}
+.btn.secondary{background:#262b36;color:var(--text)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.pick{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:14px;padding:26px 12px;text-align:center;cursor:pointer}
+.pick strong{font-size:1.1rem}
+.check{display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--muted);font-size:.92rem}
+.check input{width:20px;height:20px}
+.files{list-style:none;padding:0;margin:12px 0 0}
+.file{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.file img{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#222}
+.fname{font-size:.92rem;word-break:break-all}
+.fmeta{font-size:.8rem;color:var(--muted)}
+.bar{height:6px;background:#262b36;border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.file.ok .bar i{background:var(--ok)}
+.file.bad .fmeta{color:var(--bad)}
+.file.bad .bar i{background:var(--bad)}
+.status{padding:12px;border-radius:10px;margin-top:12px;font-size:.95rem}
+.status.ok{background:rgba(60,207,145,.12);border:1px solid rgba(60,207,145,.4)}
+.status.bad{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4)}
+.status.warn{background:rgba(245,184,75,.12);border:1px solid rgba(245,184,75,.4)}
+.batchid{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1rem;user-select:all;word-break:break-all}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+.batches{list-style:none;padding:0;margin:0}
+.batches li{padding:8px 0;border-top:1px solid var(--line);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem;display:flex;justify-content:space-between;gap:8px}
+.meter{height:8px;background:#262b36;border-radius:4px;overflow:hidden;margin:6px 0}
+.meter i{display:block;height:100%;background:var(--ok)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Creations upload</h1>
+  <p class="muted">Send your finished pictures to your private inbox. Only someone with your access link can upload or see them.</p>
+
+  <section id="lockCard" class="card hidden">
+    <h2>Unlock</h2>
+    <p class="muted">Open this page from your access link, or paste the access key that came with it.</p>
+    <label for="keyInput">Access key</label>
+    <input id="keyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="check"><input id="remember" type="checkbox" checked><span>Remember on this phone</span></div>
+    <button id="unlockBtn" class="btn">Unlock</button>
+    <div id="lockMsg"></div>
+  </section>
+
+  <section id="appCard" class="hidden">
+    <div class="card">
+      <h2>New batch</h2>
+      <label class="pick" for="fileInput">
+        <strong>Choose pictures</strong>
+        <span class="muted">Select as many as you like from your gallery</span>
+      </label>
+      <input id="fileInput" type="file" accept="image/*" multiple class="hidden">
+      <label for="noteInput">Batch name (optional)</label>
+      <input id="noteInput" type="text" maxlength="40" placeholder="e.g. neon set" autocomplete="off">
+      <div id="pickMsg"></div>
+      <ul id="fileList" class="files"></ul>
+      <div class="row">
+        <button id="clearBtn" class="btn secondary hidden">Clear</button>
+        <button id="uploadBtn" class="btn" disabled>Upload</button>
+      </div>
+      <div id="result"></div>
+    </div>
+
+    <div class="card">
+      <h2>Inbox</h2>
+      <div id="usage" class="muted">Checking…</div>
+      <ul id="batchList" class="batches"></ul>
+      <button id="forgetBtn" class="btn secondary">Forget access on this phone</button>
+    </div>
+    <p class="muted">Up to 100 pictures per batch, 25 MB each. PNG, JPEG, WebP, GIF, HEIC and AVIF are accepted and kept exactly as you upload them.</p>
+  </section>
+</main>
+<script>
+"use strict";
+const CFG = {"owner": "Misterpepe22", "repo": "creations-inbox", "branch": "main", "iv": "c85D4WAiVF6EYoGN", "ct": "UuPzQTgBMkjBvf-rrEAiKbF3_iRtVMJqC_Qt8Qyj-VGhoxlxa6V_EjL0k3frbrH-55Yh3fQfcjAh5MyoC6crk8uXJOvLOESyakZm6L9pc_JHvg6MC4_cmFfs2AkWPNs8MWbbnSMi7gPgyyAqJw", "aad": "creations-upload-v1"};
+const API = "https://api.github.com";
+const MAX_FILE = 25 * 1024 * 1024;
+const MAX_FILES = 100;
+const SOFT_LIMIT_KB = 1024 * 1024;      // 1 GB: GitHub's recommended size
+const HARD_LIMIT_KB = 4 * 1024 * 1024;  // 4 GB: stop before GitHub's 5 GB ceiling
+const STORE = "creations-upload-key";
+const $ = id => document.getElementById(id);
+let TOKEN = null, REPO_KB = 0, items = [], busy = false, batch = null;
+
+function b64uToBytes(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const bin=atob(s);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out;}
+function bytesToB64(bytes){let s="";const CH=0x8000;for(let i=0;i<bytes.length;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));return btoa(s);}
+function hex(buf){return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");}
+function fmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function msg(el,kind,html){el.innerHTML=html?'<div class="status '+kind+'">'+html+'</div>':"";}
+
+async function decryptToken(keyStr){
+  const raw=b64uToBytes(keyStr.trim());
+  if(raw.length!==32) throw new Error("That access key is not the right length.");
+  const key=await crypto.subtle.importKey("raw",raw,"AES-GCM",false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64uToBytes(CFG.iv),additionalData:new TextEncoder().encode(CFG.aad)},key,b64uToBytes(CFG.ct));
+  return new TextDecoder().decode(pt);
+}
+
+async function gh(method,path,body,tries=3){
+  for(let a=0;a<tries;a++){
+    let r;
+    try{
+      r=await fetch(API+path,{method,headers:{"Authorization":"Bearer "+TOKEN,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined,cache:"no-store"});
+    }catch(e){ if(a===tries-1) throw new Error("Network error. Check your connection."); await sleep(1500*(a+1)); continue; }
+    if(r.ok) return r.status===204?null:r.json();
+    if((r.status>=500||r.status===403||r.status===429)&&a<tries-1){await sleep(2000*(a+1));continue;}
+    const t=await r.text().catch(()=> "");
+    const e=new Error("GitHub said "+r.status+(t?": "+t.slice(0,140):"")); e.status=r.status; throw e;
+  }
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function unlock(keyStr,remember){
+  const tok=await decryptToken(keyStr);
+  TOKEN=tok;
+  const repo=await gh("GET","/repos/"+CFG.owner+"/"+CFG.repo);
+  if(!repo.private) throw new Error("The inbox is not private, so uploads are blocked.");
+  if(remember) localStorage.setItem(STORE,keyStr.trim()); 
+  $("lockCard").classList.add("hidden");
+  $("appCard").classList.remove("hidden");
+  REPO_KB=repo.size||0;
+  refreshInbox();
+}
+
+function showUsage(){
+  const pct=Math.min(100,REPO_KB/SOFT_LIMIT_KB*100);
+  let note="";
+  if(REPO_KB>HARD_LIMIT_KB) note=' <span style="color:var(--bad)">Full: ask Maya to clear posted batches before uploading more.</span>';
+  else if(REPO_KB>SOFT_LIMIT_KB) note=' <span style="color:var(--warn)">Over 1 GB: time to clear posted batches.</span>';
+  $("usage").innerHTML='Using about '+fmtSize(REPO_KB*1024)+' of 1 GB'+note+'<div class="meter"><i style="width:'+pct.toFixed(1)+'%"></i></div><span class="muted">GitHub can lag a few minutes updating this number.</span>';
+}
+
+async function refreshInbox(){
+  showUsage();
+  try{
+    const list=await gh("GET","/repos/"+CFG.owner+"/"+CFG.repo+"/contents/batches?ref="+CFG.branch,null,2);
+    const dirs=list.filter(x=>x.type==="dir").map(x=>x.name).sort().reverse().slice(0,10);
+    $("batchList").innerHTML=dirs.length?dirs.map(d=>"<li><span>"+esc(d)+"</span></li>").join(""):'<li class="muted">No batches yet</li>';
+  }catch(e){
+    $("batchList").innerHTML=e.status===404?'<li class="muted">No batches yet</li>':'<li class="muted">Could not load the batch list.</li>';
+  }
+}
+
+function sniff(b){
+  const s=(o,arr)=>arr.every((v,i)=>b[o+i]===v);
+  if(s(0,[0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A])) return {ext:"png",mime:"image/png"};
+  if(s(0,[0xFF,0xD8,0xFF])) return {ext:"jpg",mime:"image/jpeg"};
+  if(s(0,[0x52,0x49,0x46,0x46])&&s(8,[0x57,0x45,0x42,0x50])) return {ext:"webp",mime:"image/webp"};
+  if(s(0,[0x47,0x49,0x46,0x38])) return {ext:"gif",mime:"image/gif"};
+  if(s(4,[0x66,0x74,0x79,0x70])){
+    const brand=String.fromCharCode(b[8],b[9],b[10],b[11]);
+    if(/^(avif|avis)$/.test(brand)) return {ext:"avif",mime:"image/avif"};
+    if(/^(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(brand)) return {ext:"heic",mime:"image/heic"};
+  }
+  return null;
+}
+function safeBase(name){
+  let b=name.replace(/\.[^.]*$/,"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9._-]+/g,"-").replace(/^[-._]+|[-._]+$/g,"").replace(/-{2,}/g,"-");
+  return (b||"image").slice(0,60);
+}
+
+async function addFiles(fileList){
+  if(busy) return;
+  if(batch&&batch.done){ resetBatch(); }
+  const problems=[];
+  for(const f of fileList){
+    if(items.length>=MAX_FILES){problems.push("Only "+MAX_FILES+" pictures fit in one batch; the rest were left out.");break;}
+    if(items.some(x=>x.file.name===f.name&&x.file.size===f.size&&x.file.lastModified===f.lastModified)) continue;
+    const it={file:f,state:"ready",err:"",pct:0};
+    if(f.size>MAX_FILE){it.state="bad";it.err="Too big ("+fmtSize(f.size)+", limit 25 MB)";}
+    else if(f.size===0){it.state="bad";it.err="Empty file";}
+    else{
+      const head=new Uint8Array(await f.slice(0,16).arrayBuffer());
+      const t=sniff(head);
+      if(!t){it.state="bad";it.err="Not a supported picture";} else it.type=t;
+    }
+    items.push(it);
+  }
+  msg($("pickMsg"),"warn",problems.join(" "));
+  render();
+}
+
+function render(){
+  const ul=$("fileList");
+  ul.innerHTML="";
+  items.forEach((it,i)=>{
+    const li=document.createElement("li");
+    li.className="file "+(it.state==="done"?"ok":it.state==="bad"||it.state==="failed"?"bad":"");
+    if(!it.thumb&&it.type&&it.type.ext!=="heic") it.thumb=URL.createObjectURL(it.file);
+    const img=it.thumb?'<img alt="" src="'+it.thumb+'">':'<img alt="">';
+    let meta=fmtSize(it.file.size);
+    if(it.state==="bad"||it.state==="failed") meta=esc(it.err);
+    else if(it.state==="uploading") meta="Uploading "+it.pct+"%";
+    else if(it.state==="sent") meta="Sent, saving…";
+    else if(it.state==="done") meta="Saved";
+    li.innerHTML=img+'<div><div class="fname">'+esc(it.file.name)+'</div><div class="fmeta">'+meta+'</div><div class="bar"><i style="width:'+(it.state==="done"||it.state==="sent"?100:it.pct)+'%"></i></div></div>';
+    it.el=li; ul.appendChild(li);
+  });
+  const ready=items.filter(x=>x.state==="ready"||x.state==="failed").length;
+  $("uploadBtn").disabled=busy||ready===0||REPO_KB>HARD_LIMIT_KB;
+  $("uploadBtn").textContent=busy?"Uploading…":(batch&&batch.id&&!batch.done?"Retry "+ready+" failed":"Upload "+(ready?ready+" picture"+(ready>1?"s":""):""));
+  $("clearBtn").classList.toggle("hidden",busy||items.length===0);
+}
+function updateRow(it){
+  if(!it.el) return;
+  const m=it.el.querySelector(".fmeta"),bar=it.el.querySelector(".bar i");
+  m.textContent=it.state==="uploading"?"Uploading "+it.pct+"%":m.textContent;
+  bar.style.width=it.pct+"%";
+}
+
+function newBatchId(label){
+  const d=new Date(),p=n=>String(n).padStart(2,"0");
+  const rnd=hex(crypto.getRandomValues(new Uint8Array(2)));
+  let id=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+"-"+rnd;
+  const slug=safeBase(label||"").replace(/\./g,"-").slice(0,30);
+  if(label&&slug&&slug!=="image") id+="-"+slug;
+  return id;
+}
+
+function uploadBlob(it){
+  return new Promise(async (resolve,reject)=>{
+    let bytes;
+    try{ bytes=new Uint8Array(await it.file.arrayBuffer()); }catch(e){ return reject(new Error("Could not read the file on this phone")); }
+    it.sha256=hex(await crypto.subtle.digest("SHA-256",bytes));
+    const body=JSON.stringify({content:bytesToB64(bytes),encoding:"base64"});
+    bytes=null;
+    const xhr=new XMLHttpRequest();
+    xhr.open("POST",API+"/repos/"+CFG.owner+"/"+CFG.repo+"/git/blobs");
+    xhr.setRequestHeader("Authorization","Bearer "+TOKEN);
+    xhr.setRequestHeader("Accept","application/vnd.github+json");
+    xhr.setRequestHeader("X-GitHub-Api-Version","2022-11-28");
+    xhr.setRequestHeader("Content-Type","application/json");
+    xhr.upload.onprogress=e=>{ if(e.lengthComputable){ it.pct=Math.min(99,Math.round(e.loaded/e.total*100)); updateRow(it);} };
+    xhr.onload=()=>{ if(xhr.status===201){ try{resolve(JSON.parse(xhr.responseText).sha);}catch(e){reject(new Error("Unexpected reply from GitHub"));} } else { const e=new Error(xhr.status===401?"Access key no longer works":xhr.status===413?"Too big for GitHub":"GitHub said "+xhr.status); e.status=xhr.status; reject(e);} };
+    xhr.onerror=()=>reject(new Error("Network error"));
+    xhr.ontimeout=()=>reject(new Error("Timed out"));
+    xhr.timeout=10*60*1000;
+    xhr.send(body);
+  });
+}
+
+async function sendOne(it){
+  for(let a=0;a<3;a++){
+    it.state="uploading"; it.pct=0; render();
+    try{ it.blob=await uploadBlob(it); it.state="sent"; it.pct=100; render(); return true; }
+    catch(e){ it.err=e.message; if(e.status===401||e.status===413||e.status===422||a===2){ it.state="failed"; render(); return false; } await sleep(2500*(a+1)); }
+  }
+}
+
+async function commitBatch(){
+  const pending=items.filter(x=>x.state==="sent");
+  if(!pending.length) return;
+  const base="batches/"+batch.id+"/";
+  for(const it of pending){
+    if(!it.path){ batch.n+=1; it.path=base+String(batch.n).padStart(3,"0")+"-"+safeBase(it.file.name)+"."+it.type.ext; }
+    batch.files.push({file:it.path.slice(base.length),original_name:it.file.name,bytes:it.file.size,mime:it.type.mime,sha256:it.sha256,last_modified:new Date(it.file.lastModified||Date.now()).toISOString()});
+  }
+  const manifest={batch_id:batch.id,label:batch.label||null,created_at:batch.created,updated_at:new Date().toISOString(),uploaded_from:navigator.userAgent.slice(0,160),status:"new",files:batch.files};
+  const tree=pending.map(it=>({path:it.path,mode:"100644",type:"blob",sha:it.blob}));
+  tree.push({path:base+"manifest.json",mode:"100644",type:"blob",content:JSON.stringify(manifest,null,2)+"\n"});
+  const R="/repos/"+CFG.owner+"/"+CFG.repo;
+  for(let a=0;a<4;a++){
+    try{
+      const ref=await gh("GET",R+"/git/ref/heads/"+CFG.branch);
+      const head=await gh("GET",R+"/git/commits/"+ref.object.sha);
+      const t=await gh("POST",R+"/git/trees",{base_tree:head.tree.sha,tree});
+      const c=await gh("POST",R+"/git/commits",{message:"Batch "+batch.id+": "+pending.length+" picture"+(pending.length>1?"s":""),tree:t.sha,parents:[ref.object.sha]});
+      await gh("PATCH",R+"/git/refs/heads/"+CFG.branch,{sha:c.sha,force:false},1);
+      pending.forEach(it=>{it.state="done";});
+      return;
+    }catch(e){
+      if(a===3){ batch.files=batch.files.slice(0,batch.files.length-pending.length); throw e; }
+      await sleep(1500*(a+1));
+    }
+  }
+}
+
+async function startUpload(){
+  if(busy) return;
+  const todo=items.filter(x=>x.state==="ready"||x.state==="failed");
+  if(!todo.length) return;
+  const total=todo.reduce((s,x)=>s+x.file.size,0);
+  if(REPO_KB+total*1.4/1024>HARD_LIMIT_KB){ msg($("result"),"bad","This batch would fill the inbox. Ask Maya to clear posted batches first."); return; }
+  busy=true; msg($("result"),"","");
+  if(!batch||batch.done){ batch={id:newBatchId($("noteInput").value.trim()),label:$("noteInput").value.trim(),created:new Date().toISOString(),files:[],n:0,done:false}; }
+  $("noteInput").disabled=true; render();
+  let idx=0;
+  const worker=async()=>{ while(idx<todo.length){ const it=todo[idx++]; await sendOne(it); } };
+  await Promise.all([worker(),worker(),worker()]);
+  let commitErr=null;
+  try{ await commitBatch(); }catch(e){ commitErr=e; items.filter(x=>x.state==="sent").forEach(x=>{x.state="failed";x.err="Not saved: "+e.message;}); }
+  busy=false;
+  const saved=items.filter(x=>x.state==="done").length, failed=items.filter(x=>x.state==="failed").length, skipped=items.filter(x=>x.state==="bad").length;
+  if(failed===0) batch.done=true;
+  const idHtml='<div>Batch ID: <span class="batchid">'+esc(batch.id)+'</span></div>';
+  if(saved&&!failed) msg($("result"),"ok","<strong>"+saved+" picture"+(saved>1?"s":"")+" saved.</strong>"+(skipped?" "+skipped+" skipped (see above).":"")+idHtml+'<div class="muted">Tell Maya this batch ID when you want them posted.</div>');
+  else if(saved) msg($("result"),"warn","<strong>"+saved+" saved, "+failed+" failed.</strong> Tap Retry to send the failed ones into the same batch."+idHtml);
+  else msg($("result"),"bad","<strong>Nothing was saved.</strong> "+esc(commitErr?commitErr.message:(todo[0]&&todo[0].err)||"")+" Tap Retry to try again.");
+  if(batch.done) $("noteInput").disabled=false;
+  render();
+  try{ const repo=await gh("GET","/repos/"+CFG.owner+"/"+CFG.repo,null,1); REPO_KB=repo.size||REPO_KB; }catch(e){}
+  refreshInbox();
+}
+
+function resetBatch(){ items.forEach(x=>x.thumb&&URL.revokeObjectURL(x.thumb)); items=[]; batch=null; $("noteInput").disabled=false; $("noteInput").value=""; msg($("result"),"",""); msg($("pickMsg"),"",""); render(); }
+
+$("fileInput").addEventListener("change",e=>{ addFiles([...e.target.files]); e.target.value=""; });
+$("uploadBtn").addEventListener("click",startUpload);
+$("clearBtn").addEventListener("click",resetBatch);
+$("forgetBtn").addEventListener("click",()=>{ localStorage.removeItem(STORE); TOKEN=null; location.replace(location.pathname); });
+$("unlockBtn").addEventListener("click",async()=>{
+  const k=$("keyInput").value; if(!k.trim()) return;
+  $("unlockBtn").disabled=true; msg($("lockMsg"),"","");
+  try{ await unlock(k,$("remember").checked); }catch(e){ TOKEN=null; msg($("lockMsg"),"bad",e.name==="OperationError"?"That access key doesn't match.":esc(e.message)); }
+  $("unlockBtn").disabled=false;
+});
+window.addEventListener("beforeunload",e=>{ if(busy){ e.preventDefault(); e.returnValue=""; } });
+
+(async()=>{
+  const m=location.hash.match(/[#&]k=([A-Za-z0-9_-]+)/);
+  let k=null, fromLink=false;
+  if(m){ k=m[1]; fromLink=true; history.replaceState(null,"",location.pathname); }
+  else k=localStorage.getItem(STORE);
+  if(k){
+    try{ await unlock(k,true); return; }
+    catch(e){ TOKEN=null; if(!fromLink) localStorage.removeItem(STORE); $("lockCard").classList.remove("hidden"); msg($("lockMsg"),"bad",e.name==="OperationError"?"That access link doesn't match this page.":esc(e.message)); return; }
+  }
+  $("lockCard").classList.remove("hidden");
+})();
+</script>
+</body>
+</html>

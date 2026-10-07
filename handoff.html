@@ -1,8 +1,0 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Token handoff</title></head><body style="font:18px system-ui;padding:16px">
-<h3>Paste the token here, then tap Show</h3>
-<p>Nothing on this page is sent anywhere. It only shows the pasted text on this screen.</p>
-<textarea id="t" rows="4" style="width:100%;font-size:16px"></textarea><br>
-<button id="b" style="font-size:20px;margin-top:10px" onclick="document.getElementById('o').textContent='TOKEN:'+document.getElementById('t').value.trim()">Show</button>
-<button id="c" style="font-size:20px;margin-top:10px" onclick="navigator.clipboard.readText().then(function(s){document.getElementById('o').textContent='TOKEN:'+s.trim()},function(e){document.getElementById('o').textContent='CLIPBOARD ERROR: '+e})">Read clipboard</button>
-<pre id="o" style="white-space:pre-wrap;word-break:break-all"></pre>
-</body></html>
